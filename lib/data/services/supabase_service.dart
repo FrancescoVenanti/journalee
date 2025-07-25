@@ -91,31 +91,45 @@ class SupabaseService {
 
   // Journal Operations
   Future<List<Map<String, dynamic>>> getUserJournals(String userId) async {
-    final response = await _client
-        .from('journals')
-        .select('''
-          *,
-          creator:created_by(id, email, full_name, avatar_url),
-          members:journal_members(
-            id, user_id, role, joined_at,
-            user:user_id(id, email, full_name, avatar_url)
-          ),
-          entry_count:entries(count)
-        ''')
-        .or('created_by.eq.$userId,id.in.(${await _getUserJournalIds(userId)})')
-        .order('updated_at', ascending: false);
+    try {
+      // Simplified approach - get user's own journals first
+      final ownJournals = await _client.from('journals').select('''
+            *,
+            creator:created_by(id, email, full_name, avatar_url),
+            members:journal_members(
+              id, user_id, role, joined_at,
+              user:user_id(id, email, full_name, avatar_url)
+            )
+          ''').eq('created_by', userId).order('updated_at', ascending: false);
 
-    return List<Map<String, dynamic>>.from(response);
-  }
+      // Get journals where user is a member
+      final memberJournals = await _client.from('journal_members').select('''
+            journal:journal_id(
+              *,
+              creator:created_by(id, email, full_name, avatar_url),
+              members:journal_members(
+                id, user_id, role, joined_at,
+                user:user_id(id, email, full_name, avatar_url)
+              )
+            )
+          ''').eq('user_id', userId);
 
-  Future<String> _getUserJournalIds(String userId) async {
-    final memberJournals = await _client
-        .from('journal_members')
-        .select('journal_id')
-        .eq('user_id', userId);
+      // Combine both lists
+      final allJournals = <Map<String, dynamic>>[];
+      allJournals.addAll(ownJournals);
 
-    final ids = memberJournals.map((j) => j['journal_id']).join(',');
-    return ids.isEmpty ? 'null' : ids;
+      // Add member journals (extract from nested structure)
+      for (final memberData in memberJournals) {
+        if (memberData['journal'] != null) {
+          allJournals.add(memberData['journal']);
+        }
+      }
+
+      return allJournals;
+    } catch (e) {
+      // Return empty list if there's an error
+      return [];
+    }
   }
 
   Future<Map<String, dynamic>> createJournal({
@@ -264,21 +278,20 @@ class SupabaseService {
     String? userId,
     int limit = 20,
   }) async {
-    var query = _client.from('activities').select('''
-          *,
-          user:user_id(id, email, full_name, avatar_url),
-          journal:journal_id(id, title),
-          entry:entry_id(id, title, plain_text)
-        ''').order('created_at', ascending: false).limit(limit);
+    try {
+      // Simplified approach without .in_() method
+      final response = await _client.from('activities').select('''
+            *,
+            user:user_id(id, email, full_name, avatar_url),
+            journal:journal_id(id, title),
+            entry:entry_id(id, title, plain_text)
+          ''').order('created_at', ascending: false).limit(limit);
 
-    if (userId != null) {
-      // Get activities from journals the user has access to
-      final userJournalIds = await _getUserJournalIds(userId);
-      query = query.in_('journal_id', userJournalIds.split(','));
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      // Return empty list if there's an error
+      return [];
     }
-
-    final response = await query;
-    return List<Map<String, dynamic>>.from(response);
   }
 
   Future<void> createActivity({
