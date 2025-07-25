@@ -83,7 +83,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 const JournalListScreen(journalType: JournalType.shared),
             routes: [
               GoRoute(
-                path: '/create',
+                path: 'create', // Removed leading slash
                 name: 'create-shared-journal',
                 builder: (context, state) =>
                     const CreateJournalScreen(isShared: true),
@@ -99,7 +99,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 const JournalListScreen(journalType: JournalType.personal),
             routes: [
               GoRoute(
-                path: '/create',
+                path: 'create', // Removed leading slash
                 name: 'create-personal-journal',
                 builder: (context, state) =>
                     const CreateJournalScreen(isShared: false),
@@ -114,7 +114,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const SettingsScreen(),
             routes: [
               GoRoute(
-                path: '/profile',
+                path: 'profile', // Removed leading slash
                 name: 'profile',
                 builder: (context, state) => const ProfileScreen(),
               ),
@@ -134,7 +134,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           // Create Entry
           GoRoute(
-            path: '/create-entry',
+            path: 'create-entry', // Removed leading slash
             name: 'create-entry',
             builder: (context, state) {
               final journalId = state.pathParameters['journalId']!;
@@ -155,7 +155,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           // Edit Entry
           GoRoute(
-            path: '/edit',
+            path: 'edit', // Removed leading slash
             name: 'edit-entry',
             builder: (context, state) {
               final entryId = state.pathParameters['entryId']!;

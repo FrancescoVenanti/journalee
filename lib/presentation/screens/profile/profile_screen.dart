@@ -295,7 +295,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         // Account Created
         _buildInfoRow(
           'Member Since',
-          _formatDate(user.createdAt),
+          user.createdAt != null ? _formatDate(user.createdAt!) : "Unkown",
           Icons.calendar_today_outlined,
         ),
       ],

@@ -33,14 +33,27 @@ class AuthRepository {
         );
       }
 
-      // Get the user profile
-      final profile = await _getUserProfile(response.user!.id);
-      return profile;
+      // Wait a bit for the trigger to create the profile
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Get the user profile (it should be created by the trigger)
+      try {
+        final profile = await _getUserProfile(response.user!.id);
+        return profile;
+      } catch (e) {
+        // If profile doesn't exist, create it manually
+        await _createUserProfile(
+          userId: response.user!.id,
+          email: email,
+          fullName: fullName,
+        );
+        return await _getUserProfile(response.user!.id);
+      }
     } on AuthException catch (e) {
       throw AppAuthException(_getReadableAuthError(e.message));
     } catch (e) {
-      throw const AppAuthException(
-          'An unexpected error occurred. Please try again.');
+      throw AppAuthException(
+          'An unexpected error occurred during sign up: ${e.toString()}');
     }
   }
 
@@ -65,8 +78,8 @@ class AuthRepository {
     } on AuthException catch (e) {
       throw AppAuthException(_getReadableAuthError(e.message));
     } catch (e) {
-      throw const AppAuthException(
-          'An unexpected error occurred. Please try again.');
+      throw AppAuthException(
+          'An unexpected error occurred during sign in: ${e.toString()}');
     }
   }
 
@@ -116,8 +129,7 @@ class AuthRepository {
 
       return await _getUserProfile(user.id);
     } catch (e) {
-      throw const AppAuthException(
-          'Failed to update profile. Please try again.');
+      throw AppAuthException('Failed to update profile: ${e.toString()}');
     }
   }
 
@@ -132,7 +144,25 @@ class AuthRepository {
       return UserModel.fromJson(profileData);
     } catch (e) {
       if (e is AppAuthException) rethrow;
-      throw const AppAuthException('Failed to load user profile.');
+      throw AppAuthException('Failed to load user profile: ${e.toString()}');
+    }
+  }
+
+  Future<void> _createUserProfile({
+    required String userId,
+    required String email,
+    String? fullName,
+  }) async {
+    try {
+      await _supabaseService.from('profiles').insert({
+        'id': userId,
+        'email': email,
+        'full_name': fullName,
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      throw AppAuthException('Failed to create user profile: ${e.toString()}');
     }
   }
 

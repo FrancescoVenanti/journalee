@@ -5,8 +5,8 @@ class UserModel extends Equatable {
   final String email;
   final String? fullName;
   final String? avatarUrl;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   const UserModel({
     required this.id,
@@ -23,8 +23,12 @@ class UserModel extends Equatable {
       email: json['email'] as String,
       fullName: json['full_name'] as String?,
       avatarUrl: json['avatar_url'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : null,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'] as String)
+          : null,
     );
   }
 
@@ -34,8 +38,8 @@ class UserModel extends Equatable {
       'email': email,
       'full_name': fullName,
       'avatar_url': avatarUrl,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -73,11 +77,11 @@ class UserModel extends Equatable {
 
   @override
   List<Object?> get props => [
-    id,
-    email,
-    fullName,
-    avatarUrl,
-    createdAt,
-    updatedAt,
-  ];
+        id,
+        email,
+        fullName,
+        avatarUrl,
+        createdAt,
+        updatedAt,
+      ];
 }

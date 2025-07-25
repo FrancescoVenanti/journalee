@@ -33,7 +33,7 @@ class HomeScreen extends ConsumerWidget {
                 pinned: false,
                 backgroundColor: Colors.transparent,
                 flexibleSpace: FlexibleSpaceBar(
-                  titlePadding: const EdgeInsets.only(left: 24, bottom: 16),
+                  titlePadding: const EdgeInsets.only(left: 0, bottom: 16),
                   title: _buildAppBarTitle(context),
                   background: Container(
                     decoration: BoxDecoration(
@@ -110,9 +110,9 @@ class HomeScreen extends ConsumerWidget {
 
   Widget _buildAppBarTitle(BuildContext context) {
     return Text(
-      'CoJournal',
+      'Journalee',
       style: AppTextStyles.h3.copyWith(
-        color: Theme.of(context).colorScheme.onBackground,
+        color: Theme.of(context).colorScheme.onSurface,
         fontWeight: FontWeight.w700,
       ),
     );

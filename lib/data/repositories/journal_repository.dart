@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 import '../models/journal_model.dart';
 import '../services/supabase_service.dart';
 import '../../core/exceptions/app_exceptions.dart';
@@ -17,7 +19,9 @@ class JournalRepository {
     try {
       final journalsData = await _supabaseService.getUserJournals(userId);
       return journalsData.map((data) => JournalModel.fromJson(data)).toList();
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('❌ [JournalRepository] Get user journals failed: $e');
+      debugPrint('📍 [JournalRepository] Stack trace: $stackTrace');
       throw RepositoryException('Failed to load journals: ${e.toString()}');
     }
   }
@@ -58,7 +62,9 @@ class JournalRepository {
       );
 
       return JournalModel.fromJson(journalData);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('❌ [JournalRepository] Create journal failed: $e');
+      debugPrint('📍 [JournalRepository] Stack trace: $stackTrace');
       throw RepositoryException('Failed to create journal: ${e.toString()}');
     }
   }
@@ -75,7 +81,9 @@ class JournalRepository {
           ''').eq('id', journalId).single();
 
       return JournalModel.fromJson(journalData);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('❌ [JournalRepository] Get journal by ID failed: $e');
+      debugPrint('📍 [JournalRepository] Stack trace: $stackTrace');
       throw RepositoryException('Failed to load journal: ${e.toString()}');
     }
   }
@@ -104,7 +112,9 @@ class JournalRepository {
           .eq('id', journalId);
 
       return await getJournalById(journalId);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('❌ [JournalRepository] Update journal failed: $e');
+      debugPrint('📍 [JournalRepository] Stack trace: $stackTrace');
       throw RepositoryException('Failed to update journal: ${e.toString()}');
     }
   }
@@ -121,7 +131,9 @@ class JournalRepository {
           .delete()
           .eq('id', journalId)
           .eq('created_by', userId); // Ensure only owner can delete
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('❌ [JournalRepository] Delete journal failed: $e');
+      debugPrint('📍 [JournalRepository] Stack trace: $stackTrace');
       throw RepositoryException('Failed to delete journal: ${e.toString()}');
     }
   }
@@ -176,8 +188,10 @@ class JournalRepository {
         activityType: 'member_added',
         metadata: {'added_user_email': userEmail},
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (e is RepositoryException) rethrow;
+      debugPrint('❌ [JournalRepository] Add member failed: $e');
+      debugPrint('📍 [JournalRepository] Stack trace: $stackTrace');
       throw RepositoryException('Failed to add member: ${e.toString()}');
     }
   }
@@ -197,7 +211,9 @@ class JournalRepository {
           .delete()
           .eq('journal_id', journalId)
           .eq('user_id', userId);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('❌ [JournalRepository] Remove member failed: $e');
+      debugPrint('📍 [JournalRepository] Stack trace: $stackTrace');
       throw RepositoryException('Failed to remove member: ${e.toString()}');
     }
   }
@@ -218,20 +234,34 @@ class JournalRepository {
           .update({'role': role})
           .eq('journal_id', journalId)
           .eq('user_id', userId);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('❌ [JournalRepository] Update member role failed: $e');
+      debugPrint('📍 [JournalRepository] Stack trace: $stackTrace');
       throw RepositoryException(
           'Failed to update member role: ${e.toString()}');
     }
   }
 
   Future<List<JournalModel>> getSharedJournals() async {
-    final journals = await getUserJournals();
-    return journals.where((journal) => journal.isShared).toList();
+    try {
+      final journals = await getUserJournals();
+      return journals.where((journal) => journal.isShared).toList();
+    } catch (e, stackTrace) {
+      debugPrint('❌ [JournalRepository] Get shared journals failed: $e');
+      debugPrint('📍 [JournalRepository] Stack trace: $stackTrace');
+      rethrow;
+    }
   }
 
   Future<List<JournalModel>> getPersonalJournals() async {
-    final journals = await getUserJournals();
-    return journals.where((journal) => !journal.isShared).toList();
+    try {
+      final journals = await getUserJournals();
+      return journals.where((journal) => !journal.isShared).toList();
+    } catch (e, stackTrace) {
+      debugPrint('❌ [JournalRepository] Get personal journals failed: $e');
+      debugPrint('📍 [JournalRepository] Stack trace: $stackTrace');
+      rethrow;
+    }
   }
 
   Future<bool> isUserMemberOfJournal(String journalId, String userId) async {
@@ -244,7 +274,9 @@ class JournalRepository {
           .maybeSingle();
 
       return member != null;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('❌ [JournalRepository] Check user membership failed: $e');
+      debugPrint('📍 [JournalRepository] Stack trace: $stackTrace');
       return false;
     }
   }
@@ -276,7 +308,9 @@ class JournalRepository {
       }
 
       return null;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('❌ [JournalRepository] Get user role failed: $e');
+      debugPrint('📍 [JournalRepository] Stack trace: $stackTrace');
       return null;
     }
   }
