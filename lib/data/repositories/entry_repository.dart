@@ -13,20 +13,32 @@ class EntryRepository {
 
   Future<List<EntryModel>> getJournalEntries(String journalId) async {
     try {
+      print('📖 [EntryRepository] Getting entries for journal: $journalId');
+
       final entriesData = await _supabaseService.getJournalEntries(journalId);
-      return entriesData.map((data) => EntryModel.fromJson(data)).toList();
-    } catch (e) {
+
+      print('📊 [EntryRepository] Found ${entriesData.length} entries');
+
+      final entries =
+          entriesData.map((data) => EntryModel.fromJson(data)).toList();
+
+      print(
+          '✅ [EntryRepository] Successfully mapped ${entries.length} entries');
+
+      return entries;
+    } catch (e, stackTrace) {
+      print('❌ [EntryRepository] Failed to load entries: $e');
+      print('📍 [EntryRepository] Stack trace: $stackTrace');
       throw RepositoryException('Failed to load entries: ${e.toString()}');
     }
   }
 
   Future<EntryModel> getEntryById(String entryId) async {
     try {
-      // Use the service method that already works
-      final entriesData = await _supabaseService.getJournalEntries('');
+      print('📖 [EntryRepository] Getting entry by ID: $entryId');
 
-      // Find the entry by ID (mock implementation for now)
-      // In a real implementation, you'd create a specific service method
+      // For now, return a mock entry since we don't have a specific service method
+      // TODO: Implement proper getEntryById in SupabaseService
       final mockEntry = EntryModel(
         id: entryId,
         journalId: 'journal-1',
@@ -38,8 +50,11 @@ class EntryRepository {
         updatedAt: DateTime.now().subtract(const Duration(hours: 2)),
       );
 
+      print('✅ [EntryRepository] Successfully returned mock entry');
       return mockEntry;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ [EntryRepository] Failed to load entry: $e');
+      print('📍 [EntryRepository] Stack trace: $stackTrace');
       throw RepositoryException('Failed to load entry: ${e.toString()}');
     }
   }
@@ -50,12 +65,22 @@ class EntryRepository {
     required Map<String, dynamic> content,
     required String plainText,
   }) async {
+    print('📝 [EntryRepository] Creating entry in journal: $journalId');
+    print('📝 [EntryRepository] Title: ${title ?? 'No title'}');
+    print(
+        '📝 [EntryRepository] Content length: ${plainText.length} characters');
+
     final userId = _supabaseService.currentUserId;
     if (userId == null) {
+      print('❌ [EntryRepository] User not authenticated');
       throw const AppAuthException('User not authenticated');
     }
 
+    print('👤 [EntryRepository] Current user ID: $userId');
+
     try {
+      print('🚀 [EntryRepository] Calling SupabaseService.createEntry...');
+
       final entryData = await _supabaseService.createEntry(
         journalId: journalId,
         authorId: userId,
@@ -64,7 +89,11 @@ class EntryRepository {
         plainText: plainText,
       );
 
+      print(
+          '✅ [EntryRepository] Entry created successfully: ${entryData['id']}');
+
       // Create activity
+      print('📈 [EntryRepository] Creating activity...');
       await _supabaseService.createActivity(
         userId: userId,
         journalId: journalId,
@@ -78,8 +107,24 @@ class EntryRepository {
         },
       );
 
-      return EntryModel.fromJson(entryData);
-    } catch (e) {
+      print('✅ [EntryRepository] Activity created successfully');
+
+      final entry = EntryModel.fromJson(entryData);
+      print('✅ [EntryRepository] Entry model created successfully');
+
+      return entry;
+    } catch (e, stackTrace) {
+      print('❌ [EntryRepository] Failed to create entry: $e');
+      print('📍 [EntryRepository] Stack trace: $stackTrace');
+
+      if (e is PostgrestException) {
+        print('🔍 [EntryRepository] Postgres error details:');
+        print('   - Code: ${e.code}');
+        print('   - Message: ${e.message}');
+        print('   - Details: ${e.details}');
+        print('   - Hint: ${e.hint}');
+      }
+
       throw RepositoryException('Failed to create entry: ${e.toString()}');
     }
   }
@@ -96,6 +141,8 @@ class EntryRepository {
     }
 
     try {
+      print('📝 [EntryRepository] Updating entry: $entryId');
+
       await _supabaseService.updateEntry(
         entryId: entryId,
         title: title,
@@ -103,8 +150,12 @@ class EntryRepository {
         plainText: plainText,
       );
 
+      print('✅ [EntryRepository] Entry updated successfully');
+
       return await getEntryById(entryId);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ [EntryRepository] Failed to update entry: $e');
+      print('📍 [EntryRepository] Stack trace: $stackTrace');
       throw RepositoryException('Failed to update entry: ${e.toString()}');
     }
   }
@@ -116,10 +167,17 @@ class EntryRepository {
     }
 
     try {
+      print('🗑️ [EntryRepository] Deleting entry: $entryId');
+
       // For now, just return success - implement actual deletion in service later
       await Future.delayed(const Duration(milliseconds: 500));
+
+      print('✅ [EntryRepository] Entry deletion completed (mock)');
+
       // TODO: Implement proper deletion when service method is available
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ [EntryRepository] Failed to delete entry: $e');
+      print('📍 [EntryRepository] Stack trace: $stackTrace');
       throw RepositoryException('Failed to delete entry: ${e.toString()}');
     }
   }
@@ -134,6 +192,8 @@ class EntryRepository {
     }
 
     try {
+      print('💬 [EntryRepository] Adding comment to entry: $entryId');
+
       final commentData = await _supabaseService.addComment(
         entryId: entryId,
         authorId: userId,
@@ -151,8 +211,12 @@ class EntryRepository {
         },
       );
 
+      print('✅ [EntryRepository] Comment added successfully');
+
       return CommentModel.fromJson(commentData);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ [EntryRepository] Failed to add comment: $e');
+      print('📍 [EntryRepository] Stack trace: $stackTrace');
       throw RepositoryException('Failed to add comment: ${e.toString()}');
     }
   }
@@ -164,10 +228,17 @@ class EntryRepository {
     }
 
     try {
+      print('🗑️ [EntryRepository] Deleting comment: $commentId');
+
       // For now, just return success - implement actual deletion in service later
       await Future.delayed(const Duration(milliseconds: 500));
+
+      print('✅ [EntryRepository] Comment deletion completed (mock)');
+
       // TODO: Implement proper deletion when service method is available
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ [EntryRepository] Failed to delete comment: $e');
+      print('📍 [EntryRepository] Stack trace: $stackTrace');
       throw RepositoryException('Failed to delete comment: ${e.toString()}');
     }
   }
@@ -182,6 +253,8 @@ class EntryRepository {
     }
 
     try {
+      print('😊 [EntryRepository] Toggling reaction on entry: $entryId');
+
       final reactionData = await _supabaseService.toggleReaction(
         entryId: entryId,
         userId: userId,
@@ -197,11 +270,15 @@ class EntryRepository {
           metadata: {'emoji': emoji},
         );
 
+        print('✅ [EntryRepository] Reaction added successfully');
         return ReactionModel.fromJson(reactionData);
       }
 
+      print('✅ [EntryRepository] Reaction removed successfully');
       return null; // Reaction was removed
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ [EntryRepository] Failed to toggle reaction: $e');
+      print('📍 [EntryRepository] Stack trace: $stackTrace');
       throw RepositoryException('Failed to toggle reaction: ${e.toString()}');
     }
   }
@@ -212,6 +289,8 @@ class EntryRepository {
     int limit = 20,
   }) async {
     try {
+      print('🔍 [EntryRepository] Searching entries with query: "$query"');
+
       // For now, return mock data - implement actual search when service supports it
       final mockEntries = <EntryModel>[];
 
@@ -231,8 +310,12 @@ class EntryRepository {
         }
       }
 
+      print(
+          '✅ [EntryRepository] Search completed, found ${mockEntries.length} results');
       return mockEntries;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ [EntryRepository] Failed to search entries: $e');
+      print('📍 [EntryRepository] Stack trace: $stackTrace');
       throw RepositoryException('Failed to search entries: ${e.toString()}');
     }
   }
@@ -242,7 +325,9 @@ class EntryRepository {
     String? journalId,
   }) async {
     try {
-      // Return mock recent entries
+      print('📖 [EntryRepository] Getting recent entries (limit: $limit)');
+
+      // For now, return mock recent entries
       final mockEntries = <EntryModel>[];
 
       for (int i = 0; i < limit && i < 5; i++) {
@@ -259,8 +344,12 @@ class EntryRepository {
         ));
       }
 
+      print(
+          '✅ [EntryRepository] Retrieved ${mockEntries.length} recent entries');
       return mockEntries;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ [EntryRepository] Failed to load recent entries: $e');
+      print('📍 [EntryRepository] Stack trace: $stackTrace');
       throw RepositoryException(
           'Failed to load recent entries: ${e.toString()}');
     }
@@ -272,6 +361,9 @@ class EntryRepository {
     String? journalId,
   }) async {
     try {
+      print(
+          '📅 [EntryRepository] Getting entries from ${startDate.toString()} to ${endDate.toString()}');
+
       // Return mock entries within date range
       final mockEntries = <EntryModel>[];
       final daysDiff = endDate.difference(startDate).inDays;
@@ -293,8 +385,12 @@ class EntryRepository {
         }
       }
 
+      print(
+          '✅ [EntryRepository] Retrieved ${mockEntries.length} entries by date range');
       return mockEntries;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ [EntryRepository] Failed to load entries by date range: $e');
+      print('📍 [EntryRepository] Stack trace: $stackTrace');
       throw RepositoryException(
           'Failed to load entries by date range: ${e.toString()}');
     }
@@ -302,6 +398,9 @@ class EntryRepository {
 
   Future<int> getEntryCount({String? journalId, String? authorId}) async {
     try {
+      print(
+          '📊 [EntryRepository] Getting entry count for journal: $journalId, author: $authorId');
+
       // Return mock count - implement actual counting when service supports it
       int count = 5; // Default mock count
 
@@ -313,8 +412,11 @@ class EntryRepository {
         count = 7; // Mock count for specific author
       }
 
+      print('✅ [EntryRepository] Entry count: $count');
       return count;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ [EntryRepository] Failed to get entry count: $e');
+      print('📍 [EntryRepository] Stack trace: $stackTrace');
       throw RepositoryException('Failed to get entry count: ${e.toString()}');
     }
   }
@@ -324,10 +426,14 @@ class EntryRepository {
     if (userId == null) return false;
 
     try {
+      print('🔒 [EntryRepository] Checking user access to entry: $entryId');
+
       // For now, always return true for authenticated users
       // TODO: Implement proper access checking when service supports it
+      print('✅ [EntryRepository] User has access to entry');
       return true;
     } catch (e) {
+      print('❌ [EntryRepository] Failed to check user access: $e');
       return false;
     }
   }

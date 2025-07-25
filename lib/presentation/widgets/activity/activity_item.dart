@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
+import '../../../core/utils/date_helpers.dart';
 import 'activity_list.dart';
 
 class ActivityItem extends StatelessWidget {
@@ -50,7 +51,7 @@ class ActivityItem extends StatelessWidget {
 
                   // Timestamp
                   Text(
-                    _formatTimestamp(activity.timestamp),
+                    DateHelpers.getRelativeTime(activity.timestamp),
                     style: AppTextStyles.activitySubtitle.copyWith(
                       color: isDark
                           ? AppColors.textSecondaryDark
@@ -80,9 +81,7 @@ class ActivityItem extends StatelessWidget {
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: isCurrentUser
-            ? AppColors.personalJournal.withOpacity(0.1)
-            : AppColors.sharedJournal.withOpacity(0.1),
+        color: _getAvatarColor().withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
       ),
       child: activity.userAvatarUrl != null
@@ -100,7 +99,6 @@ class ActivityItem extends StatelessWidget {
   }
 
   Widget _buildAvatarFallback() {
-    final isCurrentUser = activity.userDisplayName == 'You';
     final initials = activity.userDisplayName.isNotEmpty
         ? activity.userDisplayName.substring(0, 1).toUpperCase()
         : '?';
@@ -109,9 +107,7 @@ class ActivityItem extends StatelessWidget {
       child: Text(
         initials,
         style: AppTextStyles.labelMedium.copyWith(
-          color: isCurrentUser
-              ? AppColors.personalJournal
-              : AppColors.sharedJournal,
+          color: _getAvatarColor(),
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -131,13 +127,16 @@ class ActivityItem extends StatelessWidget {
             style: const TextStyle(fontWeight: FontWeight.w600),
           ),
           TextSpan(text: ' ${activity.action} '),
-          TextSpan(
-            text: activity.journalName,
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: _getJournalTypeColor(),
+          if (activity.journalName.isNotEmpty) ...[
+            const TextSpan(text: 'in '),
+            TextSpan(
+              text: activity.journalName,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: _getJournalTypeColor(),
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -174,28 +173,33 @@ class ActivityItem extends StatelessWidget {
     );
   }
 
-  Color _getJournalTypeColor() {
-    // This would be determined by actual journal data
-    // For now, using a simple heuristic
-    return activity.journalName.toLowerCase().contains('shared')
-        ? AppColors.sharedJournal
-        : AppColors.personalJournal;
+  Color _getAvatarColor() {
+    // Color based on activity type
+    switch (activity.activityType) {
+      case ActivityType.entryCreated:
+        return AppColors.accent;
+      case ActivityType.commentAdded:
+        return AppColors.info;
+      case ActivityType.reactionAdded:
+        return AppColors.warning;
+      case ActivityType.journalCreated:
+        return AppColors.success;
+      case ActivityType.memberAdded:
+        return AppColors.sharedJournal;
+    }
   }
 
-  String _formatTimestamp(DateTime timestamp) {
-    final now = DateTime.now();
-    final difference = now.difference(timestamp);
-
-    if (difference.inMinutes < 1) {
-      return 'Just now';
-    } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays}d ago';
-    } else {
-      return DateFormat('MMM d, yyyy').format(timestamp);
+  Color _getJournalTypeColor() {
+    // This would be determined by actual journal data
+    // For now, using a simple heuristic based on activity type
+    switch (activity.activityType) {
+      case ActivityType.journalCreated:
+      case ActivityType.memberAdded:
+        return AppColors.sharedJournal;
+      default:
+        return activity.journalName.toLowerCase().contains('shared')
+            ? AppColors.sharedJournal
+            : AppColors.personalJournal;
     }
   }
 }

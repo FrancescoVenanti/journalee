@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupabaseService {
@@ -17,25 +16,20 @@ class SupabaseService {
     required String url,
     required String anonKey,
   }) async {
-    try {
-      debugPrint('🔧 [SupabaseService] Initializing with URL: $url');
-      debugPrint('🔧 [SupabaseService] Anon key length: ${anonKey.length}');
+    print('🚀 [SupabaseService] Initializing with URL: $url');
 
-      await Supabase.initialize(
-        url: url,
-        anonKey: anonKey,
-        authOptions: const FlutterAuthClientOptions(
-          authFlowType: AuthFlowType.pkce,
-        ),
-      );
-      _client = Supabase.instance.client;
+    await Supabase.initialize(
+      url: url,
+      anonKey: anonKey,
+      authOptions: const FlutterAuthClientOptions(
+        authFlowType: AuthFlowType.pkce,
+      ),
+    );
+    _client = Supabase.instance.client;
 
-      debugPrint('✅ [SupabaseService] Successfully initialized');
-    } catch (e, stackTrace) {
-      debugPrint('❌ [SupabaseService] Initialization failed: $e');
-      debugPrint('📍 [SupabaseService] Stack trace: $stackTrace');
-      rethrow;
-    }
+    print('✅ [SupabaseService] Initialized successfully');
+    print(
+        '👤 [SupabaseService] Current user: ${currentUser?.email ?? 'Not authenticated'}');
   }
 
   // Auth Stream
@@ -47,97 +41,47 @@ class SupabaseService {
     required String password,
     String? fullName,
   }) async {
-    try {
-      debugPrint('🔐 [SupabaseService] Attempting sign up for email: $email');
-      debugPrint('🔐 [SupabaseService] Full name: ${fullName ?? 'null'}');
+    print('📝 [SupabaseService] Signing up user: $email');
 
-      final response = await _client.auth.signUp(
-        email: email,
-        password: password,
-        data: fullName != null ? {'full_name': fullName} : null,
-      );
+    final response = await _client.auth.signUp(
+      email: email,
+      password: password,
+      data: fullName != null ? {'full_name': fullName} : null,
+    );
 
-      debugPrint('🔐 [SupabaseService] Sign up response:');
-      debugPrint('   - User ID: ${response.user?.id}');
-      debugPrint('   - User email: ${response.user?.email}');
-      debugPrint(
-          '   - Session: ${response.session != null ? 'exists' : 'null'}');
-
-      if (response.user != null) {
-        debugPrint('✅ [SupabaseService] Sign up successful');
-      } else {
-        debugPrint('⚠️ [SupabaseService] Sign up completed but user is null');
-      }
-
-      return response;
-    } catch (e, stackTrace) {
-      debugPrint('❌ [SupabaseService] Sign up failed: $e');
-      debugPrint('📍 [SupabaseService] Stack trace: $stackTrace');
-      rethrow;
-    }
+    print('✅ [SupabaseService] Sign up completed for: $email');
+    return response;
   }
 
   Future<AuthResponse> signIn({
     required String email,
     required String password,
   }) async {
-    try {
-      debugPrint('🔐 [SupabaseService] Attempting sign in for email: $email');
+    print('🔐 [SupabaseService] Signing in user: $email');
 
-      final response = await _client.auth.signInWithPassword(
-        email: email,
-        password: password,
-      );
+    final response = await _client.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
 
-      debugPrint('🔐 [SupabaseService] Sign in response:');
-      debugPrint('   - User ID: ${response.user?.id}');
-      debugPrint('   - User email: ${response.user?.email}');
-      debugPrint(
-          '   - Session: ${response.session != null ? 'exists' : 'null'}');
-
-      if (response.user != null) {
-        debugPrint('✅ [SupabaseService] Sign in successful');
-      } else {
-        debugPrint('⚠️ [SupabaseService] Sign in completed but user is null');
-      }
-
-      return response;
-    } catch (e, stackTrace) {
-      debugPrint('❌ [SupabaseService] Sign in failed: $e');
-      debugPrint('📍 [SupabaseService] Stack trace: $stackTrace');
-      rethrow;
-    }
+    print('✅ [SupabaseService] Sign in completed for: $email');
+    return response;
   }
 
   Future<void> signOut() async {
-    try {
-      debugPrint('🔐 [SupabaseService] Attempting sign out');
-      await _client.auth.signOut();
-      debugPrint('✅ [SupabaseService] Sign out successful');
-    } catch (e, stackTrace) {
-      debugPrint('❌ [SupabaseService] Sign out failed: $e');
-      debugPrint('📍 [SupabaseService] Stack trace: $stackTrace');
-      rethrow;
-    }
+    print('🚪 [SupabaseService] Signing out user');
+    await _client.auth.signOut();
+    print('✅ [SupabaseService] Sign out completed');
   }
 
   Future<void> resetPassword(String email) async {
-    try {
-      debugPrint('🔐 [SupabaseService] Attempting password reset for: $email');
-      await _client.auth.resetPasswordForEmail(email);
-      debugPrint('✅ [SupabaseService] Password reset email sent');
-    } catch (e, stackTrace) {
-      debugPrint('❌ [SupabaseService] Password reset failed: $e');
-      debugPrint('📍 [SupabaseService] Stack trace: $stackTrace');
-      rethrow;
-    }
+    print('🔄 [SupabaseService] Resetting password for: $email');
+    await _client.auth.resetPasswordForEmail(email);
+    print('✅ [SupabaseService] Password reset email sent');
   }
 
   // Database Query Helpers
-  SupabaseQueryBuilder from(String table) {
-    debugPrint('🗄️ [SupabaseService] Creating query for table: $table');
-    return _client.from(table);
-  }
+  SupabaseQueryBuilder from(String table) => _client.from(table);
 
   // Real-time subscriptions
   RealtimeChannel channel(String name) => _client.channel(name);
@@ -147,29 +91,13 @@ class SupabaseService {
 
   // User Profile Operations
   Future<Map<String, dynamic>?> getUserProfile(String userId) async {
-    try {
-      debugPrint('👤 [SupabaseService] Fetching profile for user: $userId');
+    print('👤 [SupabaseService] Getting user profile: $userId');
 
-      final response = await _client
-          .from('profiles')
-          .select()
-          .eq('id', userId)
-          .maybeSingle();
+    final response =
+        await _client.from('profiles').select().eq('id', userId).maybeSingle();
 
-      debugPrint(
-          '👤 [SupabaseService] Profile query response: ${response != null ? 'found' : 'null'}');
-      if (response != null) {
-        debugPrint('   - Email: ${response['email']}');
-        debugPrint('   - Full name: ${response['full_name']}');
-        debugPrint('   - Created at: ${response['created_at']}');
-      }
-
-      return response;
-    } catch (e, stackTrace) {
-      debugPrint('❌ [SupabaseService] Get user profile failed: $e');
-      debugPrint('📍 [SupabaseService] Stack trace: $stackTrace');
-      rethrow;
-    }
+    print('✅ [SupabaseService] User profile retrieved');
+    return response;
   }
 
   Future<void> updateUserProfile({
@@ -177,31 +105,24 @@ class SupabaseService {
     String? fullName,
     String? avatarUrl,
   }) async {
-    try {
-      debugPrint('👤 [SupabaseService] Updating profile for user: $userId');
-      debugPrint('   - Full name: ${fullName ?? 'unchanged'}');
-      debugPrint('   - Avatar URL: ${avatarUrl ?? 'unchanged'}');
+    print('✏️ [SupabaseService] Updating user profile: $userId');
 
-      final data = <String, dynamic>{};
-      if (fullName != null) data['full_name'] = fullName;
-      if (avatarUrl != null) data['avatar_url'] = avatarUrl;
-      data['updated_at'] = DateTime.now().toIso8601String();
+    final data = <String, dynamic>{};
+    if (fullName != null) data['full_name'] = fullName;
+    if (avatarUrl != null) data['avatar_url'] = avatarUrl;
+    data['updated_at'] = DateTime.now().toIso8601String();
 
-      await _client.from('profiles').update(data).eq('id', userId);
-      debugPrint('✅ [SupabaseService] Profile updated successfully');
-    } catch (e, stackTrace) {
-      debugPrint('❌ [SupabaseService] Update user profile failed: $e');
-      debugPrint('📍 [SupabaseService] Stack trace: $stackTrace');
-      rethrow;
-    }
+    await _client.from('profiles').update(data).eq('id', userId);
+
+    print('✅ [SupabaseService] User profile updated');
   }
 
   // Journal Operations
   Future<List<Map<String, dynamic>>> getUserJournals(String userId) async {
     try {
-      debugPrint('📚 [SupabaseService] Fetching journals for user: $userId');
+      print('📚 [SupabaseService] Getting journals for user: $userId');
 
-      // Get user's own journals
+      // Simplified approach - get user's own journals first
       final ownJournals = await _client.from('journals').select('''
             *,
             creator:created_by(id, email, full_name, avatar_url),
@@ -211,14 +132,7 @@ class SupabaseService {
             )
           ''').eq('created_by', userId).order('updated_at', ascending: false);
 
-      debugPrint(
-          '📚 [SupabaseService] Found ${ownJournals.length} owned journals');
-
-      // Debug: Print the first journal data to see what we're getting
-      if (ownJournals.isNotEmpty) {
-        debugPrint('📚 [SupabaseService] First journal data structure:');
-        debugPrint('📚 [SupabaseService] ${ownJournals.first}');
-      }
+      print('📖 [SupabaseService] Found ${ownJournals.length} owned journals');
 
       // Get journals where user is a member
       final memberJournals = await _client.from('journal_members').select('''
@@ -232,8 +146,8 @@ class SupabaseService {
             )
           ''').eq('user_id', userId);
 
-      debugPrint(
-          '📚 [SupabaseService] Found ${memberJournals.length} member journals');
+      print(
+          '👥 [SupabaseService] Found ${memberJournals.length} member journals');
 
       // Combine both lists
       final allJournals = <Map<String, dynamic>>[];
@@ -246,11 +160,12 @@ class SupabaseService {
         }
       }
 
-      debugPrint('📚 [SupabaseService] Total journals: ${allJournals.length}');
+      print('✅ [SupabaseService] Total journals: ${allJournals.length}');
       return allJournals;
     } catch (e, stackTrace) {
-      debugPrint('❌ [SupabaseService] Get user journals failed: $e');
-      debugPrint('📍 [SupabaseService] Stack trace: $stackTrace');
+      print('❌ [SupabaseService] Error getting user journals: $e');
+      print('📍 [SupabaseService] Stack trace: $stackTrace');
+      // Return empty list if there's an error
       return [];
     }
   }
@@ -261,32 +176,21 @@ class SupabaseService {
     required bool isShared,
     required String createdBy,
   }) async {
-    try {
-      debugPrint('📚 [SupabaseService] Creating journal:');
-      debugPrint('   - Title: $title');
-      debugPrint('   - Description: ${description ?? 'null'}');
-      debugPrint('   - Is shared: $isShared');
-      debugPrint('   - Created by: $createdBy');
+    print('📝 [SupabaseService] Creating journal: $title (shared: $isShared)');
 
-      final response = await _client
-          .from('journals')
-          .insert({
-            'title': title,
-            'description': description,
-            'is_shared': isShared,
-            'created_by': createdBy,
-          })
-          .select()
-          .single();
+    final response = await _client
+        .from('journals')
+        .insert({
+          'title': title,
+          'description': description,
+          'is_shared': isShared,
+          'created_by': createdBy,
+        })
+        .select()
+        .single();
 
-      debugPrint(
-          '✅ [SupabaseService] Journal created with ID: ${response['id']}');
-      return response;
-    } catch (e, stackTrace) {
-      debugPrint('❌ [SupabaseService] Create journal failed: $e');
-      debugPrint('📍 [SupabaseService] Stack trace: $stackTrace');
-      rethrow;
-    }
+    print('✅ [SupabaseService] Journal created: ${response['id']}');
+    return response;
   }
 
   Future<void> addJournalMember({
@@ -294,50 +198,54 @@ class SupabaseService {
     required String userId,
     String role = 'member',
   }) async {
-    try {
-      debugPrint('👥 [SupabaseService] Adding member to journal:');
-      debugPrint('   - Journal ID: $journalId');
-      debugPrint('   - User ID: $userId');
-      debugPrint('   - Role: $role');
+    print(
+        '👥 [SupabaseService] Adding member to journal $journalId: $userId ($role)');
 
-      await _client.from('journal_members').insert({
-        'journal_id': journalId,
-        'user_id': userId,
-        'role': role,
-      });
+    await _client.from('journal_members').insert({
+      'journal_id': journalId,
+      'user_id': userId,
+      'role': role,
+    });
 
-      debugPrint('✅ [SupabaseService] Journal member added successfully');
-    } catch (e, stackTrace) {
-      debugPrint('❌ [SupabaseService] Add journal member failed: $e');
-      debugPrint('📍 [SupabaseService] Stack trace: $stackTrace');
-      rethrow;
-    }
+    print('✅ [SupabaseService] Member added successfully');
   }
 
   // Entry Operations
   Future<List<Map<String, dynamic>>> getJournalEntries(String journalId) async {
+    print('📖 [SupabaseService] Getting entries for journal: $journalId');
+
     try {
-      debugPrint(
-          '📝 [SupabaseService] Fetching entries for journal: $journalId');
+      final response = await _client
+          .from('entries')
+          .select('''
+            *,
+            author:author_id(id, email, full_name, avatar_url),
+            comments(
+              id, content, created_at, updated_at,
+              author:author_id(id, email, full_name, avatar_url)
+            ),
+            reactions(
+              id, emoji, created_at,
+              user:user_id(id, email, full_name, avatar_url)
+            )
+          ''')
+          .eq('journal_id', journalId)
+          .order('created_at', ascending: false);
 
-      final response = await _client.from('entries').select('''
-          *,
-          author:author_id(id, email, full_name, avatar_url),
-          comments(
-            id, content, created_at, updated_at,
-            author:author_id(id, email, full_name, avatar_url)
-          ),
-          reactions(
-            id, emoji, created_at,
-            user:user_id(id, email, full_name, avatar_url)
-          )
-        ''').eq('journal_id', journalId).order('created_at', ascending: false);
-
-      debugPrint('📝 [SupabaseService] Found ${response.length} entries');
+      print('✅ [SupabaseService] Retrieved ${response.length} entries');
       return List<Map<String, dynamic>>.from(response);
     } catch (e, stackTrace) {
-      debugPrint('❌ [SupabaseService] Get journal entries failed: $e');
-      debugPrint('📍 [SupabaseService] Stack trace: $stackTrace');
+      print('❌ [SupabaseService] Error getting journal entries: $e');
+      print('📍 [SupabaseService] Stack trace: $stackTrace');
+
+      if (e is PostgrestException) {
+        print('🔍 [SupabaseService] Postgres error details:');
+        print('   - Code: ${e.code}');
+        print('   - Message: ${e.message}');
+        print('   - Details: ${e.details}');
+        print('   - Hint: ${e.hint}');
+      }
+
       rethrow;
     }
   }
@@ -349,31 +257,43 @@ class SupabaseService {
     required Map<String, dynamic> content,
     required String plainText,
   }) async {
+    print('📝 [SupabaseService] Creating entry in journal: $journalId');
+    print('📝 [SupabaseService] Author: $authorId');
+    print('📝 [SupabaseService] Title: ${title ?? 'No title'}');
+    print('📝 [SupabaseService] Plain text length: ${plainText.length}');
+    print('📝 [SupabaseService] Content: $content');
+
     try {
-      debugPrint('📝 [SupabaseService] Creating entry:');
-      debugPrint('   - Journal ID: $journalId');
-      debugPrint('   - Author ID: $authorId');
-      debugPrint('   - Title: ${title ?? 'null'}');
-      debugPrint('   - Plain text length: ${plainText.length}');
+      final insertData = {
+        'journal_id': journalId,
+        'author_id': authorId,
+        'title': title,
+        'content': content,
+        'plain_text': plainText,
+      };
 
-      final response = await _client
-          .from('entries')
-          .insert({
-            'journal_id': journalId,
-            'author_id': authorId,
-            'title': title,
-            'content': content,
-            'plain_text': plainText,
-          })
-          .select()
-          .single();
+      print('🚀 [SupabaseService] Inserting data: $insertData');
 
-      debugPrint(
-          '✅ [SupabaseService] Entry created with ID: ${response['id']}');
+      final response =
+          await _client.from('entries').insert(insertData).select().single();
+
+      print(
+          '✅ [SupabaseService] Entry created successfully: ${response['id']}');
+      print('📊 [SupabaseService] Response data: $response');
+
       return response;
     } catch (e, stackTrace) {
-      debugPrint('❌ [SupabaseService] Create entry failed: $e');
-      debugPrint('📍 [SupabaseService] Stack trace: $stackTrace');
+      print('❌ [SupabaseService] Failed to create entry: $e');
+      print('📍 [SupabaseService] Stack trace: $stackTrace');
+
+      if (e is PostgrestException) {
+        print('🔍 [SupabaseService] Postgres error details:');
+        print('   - Code: ${e.code}');
+        print('   - Message: ${e.message}');
+        print('   - Details: ${e.details}');
+        print('   - Hint: ${e.hint}');
+      }
+
       rethrow;
     }
   }
@@ -384,24 +304,19 @@ class SupabaseService {
     Map<String, dynamic>? content,
     String? plainText,
   }) async {
-    try {
-      debugPrint('📝 [SupabaseService] Updating entry: $entryId');
+    print('✏️ [SupabaseService] Updating entry: $entryId');
 
-      final data = <String, dynamic>{
-        'updated_at': DateTime.now().toIso8601String(),
-      };
+    final data = <String, dynamic>{
+      'updated_at': DateTime.now().toIso8601String(),
+    };
 
-      if (title != null) data['title'] = title;
-      if (content != null) data['content'] = content;
-      if (plainText != null) data['plain_text'] = plainText;
+    if (title != null) data['title'] = title;
+    if (content != null) data['content'] = content;
+    if (plainText != null) data['plain_text'] = plainText;
 
-      await _client.from('entries').update(data).eq('id', entryId);
-      debugPrint('✅ [SupabaseService] Entry updated successfully');
-    } catch (e, stackTrace) {
-      debugPrint('❌ [SupabaseService] Update entry failed: $e');
-      debugPrint('📍 [SupabaseService] Stack trace: $stackTrace');
-      rethrow;
-    }
+    await _client.from('entries').update(data).eq('id', entryId);
+
+    print('✅ [SupabaseService] Entry updated successfully');
   }
 
   // Comment Operations
@@ -410,29 +325,19 @@ class SupabaseService {
     required String authorId,
     required String content,
   }) async {
-    try {
-      debugPrint('💬 [SupabaseService] Adding comment:');
-      debugPrint('   - Entry ID: $entryId');
-      debugPrint('   - Author ID: $authorId');
-      debugPrint('   - Content length: ${content.length}');
+    print('💬 [SupabaseService] Adding comment to entry: $entryId');
 
-      final response = await _client.from('comments').insert({
-        'entry_id': entryId,
-        'author_id': authorId,
-        'content': content,
-      }).select('''
+    final response = await _client.from('comments').insert({
+      'entry_id': entryId,
+      'author_id': authorId,
+      'content': content,
+    }).select('''
           *,
           author:author_id(id, email, full_name, avatar_url)
         ''').single();
 
-      debugPrint(
-          '✅ [SupabaseService] Comment added with ID: ${response['id']}');
-      return response;
-    } catch (e, stackTrace) {
-      debugPrint('❌ [SupabaseService] Add comment failed: $e');
-      debugPrint('📍 [SupabaseService] Stack trace: $stackTrace');
-      rethrow;
-    }
+    print('✅ [SupabaseService] Comment added successfully');
+    return response;
   }
 
   // Reaction Operations
@@ -441,48 +346,37 @@ class SupabaseService {
     required String userId,
     required String emoji,
   }) async {
-    try {
-      debugPrint('👍 [SupabaseService] Toggling reaction:');
-      debugPrint('   - Entry ID: $entryId');
-      debugPrint('   - User ID: $userId');
-      debugPrint('   - Emoji: $emoji');
+    print('😊 [SupabaseService] Toggling reaction on entry: $entryId');
 
-      // Check if reaction exists
-      final existingReaction = await _client
-          .from('reactions')
-          .select()
-          .eq('entry_id', entryId)
-          .eq('user_id', userId)
-          .eq('emoji', emoji)
-          .maybeSingle();
+    // Check if reaction exists
+    final existingReaction = await _client
+        .from('reactions')
+        .select()
+        .eq('entry_id', entryId)
+        .eq('user_id', userId)
+        .eq('emoji', emoji)
+        .maybeSingle();
 
-      if (existingReaction != null) {
-        // Remove reaction
-        await _client
-            .from('reactions')
-            .delete()
-            .eq('id', existingReaction['id']);
-        debugPrint('✅ [SupabaseService] Reaction removed');
-        return null;
-      } else {
-        // Add reaction
-        final response = await _client.from('reactions').insert({
-          'entry_id': entryId,
-          'user_id': userId,
-          'emoji': emoji,
-        }).select('''
+    if (existingReaction != null) {
+      // Remove reaction
+      print('🗑️ [SupabaseService] Removing existing reaction');
+      await _client.from('reactions').delete().eq('id', existingReaction['id']);
+      print('✅ [SupabaseService] Reaction removed');
+      return null;
+    } else {
+      // Add reaction
+      print('➕ [SupabaseService] Adding new reaction');
+      final response = await _client.from('reactions').insert({
+        'entry_id': entryId,
+        'user_id': userId,
+        'emoji': emoji,
+      }).select('''
             *,
             user:user_id(id, email, full_name, avatar_url)
           ''').single();
 
-        debugPrint(
-            '✅ [SupabaseService] Reaction added with ID: ${response['id']}');
-        return response;
-      }
-    } catch (e, stackTrace) {
-      debugPrint('❌ [SupabaseService] Toggle reaction failed: $e');
-      debugPrint('📍 [SupabaseService] Stack trace: $stackTrace');
-      rethrow;
+      print('✅ [SupabaseService] Reaction added successfully');
+      return response;
     }
   }
 
@@ -492,9 +386,9 @@ class SupabaseService {
     int limit = 20,
   }) async {
     try {
-      debugPrint(
-          '📊 [SupabaseService] Fetching recent activity (limit: $limit)');
+      print('📈 [SupabaseService] Getting recent activity (limit: $limit)');
 
+      // Simplified approach without .in_() method
       final response = await _client.from('activities').select('''
             *,
             user:user_id(id, email, full_name, avatar_url),
@@ -502,11 +396,12 @@ class SupabaseService {
             entry:entry_id(id, title, plain_text)
           ''').order('created_at', ascending: false).limit(limit);
 
-      debugPrint('📊 [SupabaseService] Found ${response.length} activities');
+      print('✅ [SupabaseService] Retrieved ${response.length} activities');
       return List<Map<String, dynamic>>.from(response);
     } catch (e, stackTrace) {
-      debugPrint('❌ [SupabaseService] Get recent activity failed: $e');
-      debugPrint('📍 [SupabaseService] Stack trace: $stackTrace');
+      print('❌ [SupabaseService] Error getting recent activity: $e');
+      print('📍 [SupabaseService] Stack trace: $stackTrace');
+      // Return empty list if there's an error
       return [];
     }
   }
@@ -518,13 +413,11 @@ class SupabaseService {
     required String activityType,
     Map<String, dynamic>? metadata,
   }) async {
-    try {
-      debugPrint('📊 [SupabaseService] Creating activity:');
-      debugPrint('   - User ID: $userId');
-      debugPrint('   - Journal ID: ${journalId ?? 'null'}');
-      debugPrint('   - Entry ID: ${entryId ?? 'null'}');
-      debugPrint('   - Type: $activityType');
+    print('📈 [SupabaseService] Creating activity: $activityType');
+    print(
+        '📈 [SupabaseService] User: $userId, Journal: $journalId, Entry: $entryId');
 
+    try {
       await _client.from('activities').insert({
         'user_id': userId,
         'journal_id': journalId,
@@ -533,17 +426,28 @@ class SupabaseService {
         'metadata': metadata,
       });
 
-      debugPrint('✅ [SupabaseService] Activity created successfully');
+      print('✅ [SupabaseService] Activity created successfully');
     } catch (e, stackTrace) {
-      debugPrint('❌ [SupabaseService] Create activity failed: $e');
-      debugPrint('📍 [SupabaseService] Stack trace: $stackTrace');
-      rethrow;
+      print('❌ [SupabaseService] Failed to create activity: $e');
+      print('📍 [SupabaseService] Stack trace: $stackTrace');
+
+      if (e is PostgrestException) {
+        print('🔍 [SupabaseService] Postgres error details:');
+        print('   - Code: ${e.code}');
+        print('   - Message: ${e.message}');
+        print('   - Details: ${e.details}');
+        print('   - Hint: ${e.hint}');
+      }
+
+      // Don't throw here since activity creation is not critical
+      // The main operation (entry creation) should still succeed
     }
   }
 
   // Real-time subscriptions
   RealtimeChannel subscribeToJournal(String journalId) {
-    debugPrint('📡 [SupabaseService] Subscribing to journal: $journalId');
+    print('🔔 [SupabaseService] Subscribing to journal: $journalId');
+
     return _client.channel('journal_$journalId').onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
@@ -554,14 +458,16 @@ class SupabaseService {
             value: journalId,
           ),
           callback: (payload) {
-            debugPrint(
-                '📡 [SupabaseService] Journal update received: ${payload.eventType}');
+            print(
+                '🔔 [SupabaseService] Real-time update received for journal: $journalId');
+            // Handle real-time updates
           },
         );
   }
 
   RealtimeChannel subscribeToEntry(String entryId) {
-    debugPrint('📡 [SupabaseService] Subscribing to entry: $entryId');
+    print('🔔 [SupabaseService] Subscribing to entry: $entryId');
+
     return _client.channel('entry_$entryId').onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
@@ -572,8 +478,9 @@ class SupabaseService {
             value: entryId,
           ),
           callback: (payload) {
-            debugPrint(
-                '📡 [SupabaseService] Entry update received: ${payload.eventType}');
+            print(
+                '🔔 [SupabaseService] Real-time update received for entry: $entryId');
+            // Handle real-time updates
           },
         );
   }

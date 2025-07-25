@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../core/utils/validators.dart';
+import '../../providers/entry_providers.dart';
 import '../../widgets/common/custom_button.dart';
 
 class CreateEntryScreen extends ConsumerStatefulWidget {
@@ -24,7 +25,6 @@ class _CreateEntryScreenState extends ConsumerState<CreateEntryScreen> {
   final _contentController = TextEditingController();
   final _scrollController = ScrollController();
 
-  bool _isSaving = false;
   bool _hasChanges = false;
 
   @override
@@ -38,46 +38,22 @@ class _CreateEntryScreenState extends ConsumerState<CreateEntryScreen> {
   Future<void> _handleSaveEntry() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isSaving = true;
-    });
-
-    try {
-      // Mock save operation - replace with actual provider call
-      await Future.delayed(const Duration(seconds: 1));
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Entry created successfully!'),
-            backgroundColor: AppColors.success,
-          ),
+    // Create entry using the provider
+    await ref.read(entryControllerProvider.notifier).createEntry(
+          journalId: widget.journalId,
+          title: _titleController.text.trim().isEmpty
+              ? null
+              : _titleController.text.trim(),
+          content: {'ops': []}, // Simple Delta format for now
+          plainText: _contentController.text.trim(),
         );
-        context.pop();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to create entry: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSaving = false;
-        });
-      }
-    }
   }
 
   Future<void> _handleSaveDraft() async {
-    // Save as draft logic
+    // For now, just show a message - implement draft saving later
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Draft saved'),
+        content: Text('Draft saving coming soon!'),
         backgroundColor: AppColors.info,
       ),
     );
@@ -85,6 +61,36 @@ class _CreateEntryScreenState extends ConsumerState<CreateEntryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final entryState = ref.watch(entryControllerProvider);
+    final isLoading = entryState is EntryStateLoading;
+
+    // Listen to entry state changes
+    ref.listen<EntryState>(entryControllerProvider, (previous, next) {
+      switch (next) {
+        case EntryStateSuccess():
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Entry created successfully!'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+          // Invalidate the journal entries provider to refresh the list
+          ref.invalidate(journalEntriesProvider(widget.journalId));
+          context.pop();
+          break;
+        case EntryStateError(:final message):
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to create entry: $message'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+          break;
+        default:
+          break;
+      }
+    });
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -97,7 +103,7 @@ class _CreateEntryScreenState extends ConsumerState<CreateEntryScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: _isSaving ? null : _handleSaveDraft,
+            onPressed: isLoading ? null : _handleSaveDraft,
             child: const Text('Draft'),
           ),
         ],
@@ -139,7 +145,7 @@ class _CreateEntryScreenState extends ConsumerState<CreateEntryScreen> {
             ),
 
             // Bottom Action Bar
-            _buildBottomActionBar(),
+            _buildBottomActionBar(isLoading),
           ],
         ),
       ),
@@ -264,7 +270,7 @@ class _CreateEntryScreenState extends ConsumerState<CreateEntryScreen> {
     ];
   }
 
-  Widget _buildBottomActionBar() {
+  Widget _buildBottomActionBar(bool isLoading) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -295,10 +301,10 @@ class _CreateEntryScreenState extends ConsumerState<CreateEntryScreen> {
 
             // Publish Button
             CustomButton(
-              onPressed: _isSaving ? null : _handleSaveEntry,
+              onPressed: isLoading ? null : _handleSaveEntry,
               isFullWidth: false,
               leftIcon: Icons.publish,
-              child: _isSaving
+              child: isLoading
                   ? const SizedBox(
                       height: 20,
                       width: 20,

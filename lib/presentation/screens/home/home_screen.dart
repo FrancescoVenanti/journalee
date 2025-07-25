@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:journalee/data/models/user_model.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
+import '../../../core/router/app_router.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/journal_provider.dart';
+import '../../providers/entry_providers.dart';
 import '../../widgets/common/custom_button.dart';
-import '../../widgets/activity/activity_list.dart';
 import '../../widgets/journal/journal_card.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -20,9 +22,10 @@ class HomeScreen extends ConsumerWidget {
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
-            // Refresh data
+            // Refresh all data
             ref.invalidate(currentUserProvider);
-            // Add other data refreshes here
+            ref.invalidate(userJournalsProvider);
+            ref.invalidate(recentEntriesProvider);
           },
           child: CustomScrollView(
             slivers: [
@@ -33,7 +36,7 @@ class HomeScreen extends ConsumerWidget {
                 pinned: false,
                 backgroundColor: Colors.transparent,
                 flexibleSpace: FlexibleSpaceBar(
-                  titlePadding: const EdgeInsets.only(left: 0, bottom: 16),
+                  titlePadding: const EdgeInsets.only(left: 24, bottom: 16),
                   title: _buildAppBarTitle(context),
                   background: Container(
                     decoration: BoxDecoration(
@@ -66,13 +69,13 @@ class HomeScreen extends ConsumerWidget {
                     children: [
                       _buildSectionHeader(
                         context,
-                        'Recent Activity',
+                        'Recent Entries',
                         onSeeAll: () {
-                          // Navigate to full activity screen
+                          // Navigate to full entries screen
                         },
                       ),
                       const SizedBox(height: 16),
-                      const ActivityList(limit: 5),
+                      _buildRecentEntries(context, ref),
                     ],
                   ),
                 ),
@@ -87,11 +90,11 @@ class HomeScreen extends ConsumerWidget {
                     children: [
                       _buildSectionHeader(
                         context,
-                        'Journals',
+                        'Your Journals',
                         onSeeAll: () => context.go('/shared'),
                       ),
                       const SizedBox(height: 16),
-                      _buildJournalsPreview(context),
+                      _buildJournalsPreview(context, ref),
                     ],
                   ),
                 ),
@@ -112,7 +115,7 @@ class HomeScreen extends ConsumerWidget {
     return Text(
       'Journalee',
       style: AppTextStyles.h3.copyWith(
-        color: Theme.of(context).colorScheme.onSurface,
+        color: Theme.of(context).colorScheme.onBackground,
         fontWeight: FontWeight.w700,
       ),
     );
@@ -174,7 +177,12 @@ class HomeScreen extends ConsumerWidget {
             CustomButton(
               onPressed: () {
                 Navigator.pop(context);
-                // Navigate to quick entry
+                // Navigate to quick entry - for now, just show message
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Quick entry coming soon!'),
+                  ),
+                );
               },
               variant: ButtonVariant.text,
               leftIcon: Icons.edit,
@@ -231,7 +239,12 @@ class HomeScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           CustomButton(
             onPressed: () {
-              // Navigate to quick entry
+              // Show quick entry coming soon message
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Quick entry coming soon!'),
+                ),
+              );
             },
             backgroundColor: Colors.white,
             foregroundColor: AppColors.accent,
@@ -308,9 +321,263 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildJournalsPreview(BuildContext context) {
-    // This would normally fetch from a provider
-    // For now, showing placeholder
+  Widget _buildRecentEntries(BuildContext context, WidgetRef ref) {
+    final recentEntriesAsync = ref.watch(recentEntriesProvider);
+
+    return recentEntriesAsync.when(
+      data: (entries) {
+        if (entries.isEmpty) {
+          return _buildEmptyRecentEntries(context);
+        }
+
+        return Column(
+          children: entries.take(3).map((entry) {
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.cardDark
+                    : AppColors.cardLight,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.dividerDark
+                      : AppColors.dividerLight,
+                  width: 0.5,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          entry.title ?? 'Untitled Entry',
+                          style: AppTextStyles.bodyLarge.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        _formatRelativeTime(entry.createdAt),
+                        style: AppTextStyles.labelSmall.copyWith(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondaryLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    entry.preview,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondaryLight,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        );
+      },
+      loading: () => _buildRecentEntriesSkeleton(),
+      error: (error, stack) => _buildRecentEntriesError(context),
+    );
+  }
+
+  Widget _buildEmptyRecentEntries(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
+          width: 0.5,
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.article_outlined,
+            size: 48,
+            color: isDark
+                ? AppColors.textSecondaryDark.withOpacity(0.5)
+                : AppColors.textSecondaryLight.withOpacity(0.5),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No entries yet',
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Start writing to see your recent entries here',
+            style: AppTextStyles.bodySmall.copyWith(
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentEntriesSkeleton() {
+    return Column(
+      children: List.generate(3, (index) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          height: 80,
+          decoration: BoxDecoration(
+            color: Colors.grey.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(12),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildRecentEntriesError(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
+          width: 0.5,
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.error_outline,
+            size: 48,
+            color: AppColors.error.withOpacity(0.6),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Failed to load recent entries',
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildJournalsPreview(BuildContext context, WidgetRef ref) {
+    final journalsAsync = ref.watch(userJournalsProvider);
+
+    return journalsAsync.when(
+      data: (journals) {
+        if (journals.isEmpty) {
+          return _buildEmptyJournals(context);
+        }
+
+        return SizedBox(
+          height: 160,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: journals.length.clamp(0, 5), // Show max 5 journals
+            itemBuilder: (context, index) {
+              final journal = journals[index];
+              return Container(
+                width: 200,
+                margin: EdgeInsets.only(
+                    right: index < journals.length - 1 ? 16 : 0),
+                child: JournalCard(
+                  title: journal.title,
+                  subtitle: journal.description ?? journal.typeText,
+                  isShared: journal.isShared,
+                  memberCount: journal.memberCount,
+                  lastEntryDate: journal.lastEntryAt,
+                  entryCount: journal.entryCount,
+                  onTap: () => AppRouter.goToJournalDetail(context, journal.id),
+                ),
+              );
+            },
+          ),
+        );
+      },
+      loading: () => _buildJournalsSkeleton(),
+      error: (error, stack) => _buildJournalsError(context),
+    );
+  }
+
+  Widget _buildEmptyJournals(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      height: 160,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
+          width: 0.5,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.book_outlined,
+            size: 48,
+            color: isDark
+                ? AppColors.textSecondaryDark.withOpacity(0.5)
+                : AppColors.textSecondaryLight.withOpacity(0.5),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No journals yet',
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Create your first journal to get started',
+            style: AppTextStyles.bodySmall.copyWith(
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildJournalsSkeleton() {
     return SizedBox(
       height: 160,
       child: ListView.builder(
@@ -320,18 +587,48 @@ class HomeScreen extends ConsumerWidget {
           return Container(
             width: 200,
             margin: EdgeInsets.only(right: index < 2 ? 16 : 0),
-            child: JournalCard(
-              title: index == 0 ? 'Personal Journal' : 'Shared Journal',
-              subtitle: index == 0 ? 'Personal Journal' : 'Shared Journal',
-              isShared: index != 0,
-              memberCount: index == 0 ? null : 3,
-              lastEntryDate: DateTime.now().subtract(Duration(days: index)),
-              onTap: () {
-                // Navigate to journal detail
-              },
+            decoration: BoxDecoration(
+              color: Colors.grey.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(16),
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildJournalsError(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      height: 160,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
+          width: 0.5,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.error_outline,
+            size: 48,
+            color: AppColors.error.withOpacity(0.6),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Failed to load journals',
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -341,5 +638,20 @@ class HomeScreen extends ConsumerWidget {
     if (hour < 12) return 'Good morning';
     if (hour < 17) return 'Good afternoon';
     return 'Good evening';
+  }
+
+  String _formatRelativeTime(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}d ago';
+    } else {
+      return '${(difference.inDays / 7).floor()}w ago';
+    }
   }
 }

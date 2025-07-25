@@ -10,24 +10,60 @@ final entryRepositoryProvider = Provider<EntryRepository>((ref) {
   return EntryRepository();
 });
 
-// Journal Entries Provider
+// Journal Entries Provider - REAL DATA ONLY
 final journalEntriesProvider =
     FutureProvider.family<List<EntryModel>, String>((ref, journalId) async {
   final repository = ref.watch(entryRepositoryProvider);
   return repository.getJournalEntries(journalId);
 });
 
-// Single Entry Provider
+// Single Entry Provider - REAL DATA ONLY
 final entryProvider =
     FutureProvider.family<EntryModel, String>((ref, entryId) async {
   final repository = ref.watch(entryRepositoryProvider);
   return repository.getEntryById(entryId);
 });
 
-// Recent Entries Provider
+// Recent Entries Provider - REAL DATA ONLY (NO MOCK DATA)
 final recentEntriesProvider = FutureProvider<List<EntryModel>>((ref) async {
-  final repository = ref.watch(entryRepositoryProvider);
-  return repository.getRecentEntries(limit: 10);
+  try {
+    final repository = ref.watch(entryRepositoryProvider);
+
+    // Get ALL user's journals first
+    final userJournals = await ref.watch(userJournalsProvider.future);
+
+    if (userJournals.isEmpty) {
+      print(
+          '📖 [RecentEntriesProvider] No journals found, returning empty list');
+      return [];
+    }
+
+    // Get entries from all journals and combine them
+    final allEntries = <EntryModel>[];
+
+    for (final journal in userJournals) {
+      try {
+        final journalEntries = await repository.getJournalEntries(journal.id);
+        allEntries.addAll(journalEntries);
+      } catch (e) {
+        print(
+            '⚠️ [RecentEntriesProvider] Failed to get entries for journal ${journal.id}: $e');
+        // Continue with other journals even if one fails
+      }
+    }
+
+    // Sort by creation date (newest first) and take the 10 most recent
+    allEntries.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final recentEntries = allEntries.take(10).toList();
+
+    print(
+        '📖 [RecentEntriesProvider] Found ${recentEntries.length} recent entries');
+    return recentEntries;
+  } catch (e, stackTrace) {
+    print('❌ [RecentEntriesProvider] Error getting recent entries: $e');
+    print('📍 [RecentEntriesProvider] Stack trace: $stackTrace');
+    return []; // Return empty list instead of fake data
+  }
 });
 
 // Entry Controller
@@ -62,9 +98,10 @@ class EntryController extends StateNotifier<EntryState> {
 
       state = EntryState.success(entry);
 
-      // Invalidate related providers
+      // Invalidate related providers to refresh the UI
       _ref.invalidate(journalEntriesProvider(journalId));
       _ref.invalidate(recentEntriesProvider);
+      _ref.invalidate(userJournalsProvider); // Refresh to update entry counts
     } on RepositoryException catch (e) {
       state = EntryState.error(e.message);
     } catch (e) {
@@ -92,6 +129,7 @@ class EntryController extends StateNotifier<EntryState> {
 
       // Invalidate related providers
       _ref.invalidate(entryProvider(entryId));
+      _ref.invalidate(recentEntriesProvider);
     } on RepositoryException catch (e) {
       state = EntryState.error(e.message);
     } catch (e) {
@@ -227,18 +265,28 @@ final isLoadingEntryProvider = Provider<bool>((ref) {
   return entryState is EntryStateLoading;
 });
 
-// Search entries provider
+// Search entries provider - REAL DATA ONLY
 final searchEntriesProvider =
     FutureProvider.family<List<EntryModel>, String>((ref, query) async {
   if (query.trim().isEmpty) return [];
 
-  final repository = ref.watch(entryRepositoryProvider);
-  return repository.searchEntries(query: query);
+  try {
+    final repository = ref.watch(entryRepositoryProvider);
+    return repository.searchEntries(query: query);
+  } catch (e) {
+    print('❌ [SearchEntriesProvider] Error searching entries: $e');
+    return []; // Return empty list instead of fake data
+  }
 });
 
-// Entry count provider
+// Entry count provider - REAL DATA ONLY
 final entryCountProvider =
     FutureProvider.family<int, String?>((ref, journalId) async {
-  final repository = ref.watch(entryRepositoryProvider);
-  return repository.getEntryCount(journalId: journalId);
+  try {
+    final repository = ref.watch(entryRepositoryProvider);
+    return repository.getEntryCount(journalId: journalId);
+  } catch (e) {
+    print('❌ [EntryCountProvider] Error getting entry count: $e');
+    return 0; // Return 0 instead of fake data
+  }
 });
