@@ -42,4 +42,3 @@ This project is open source and available under the MIT License.
 
 ---
 
-**Keywords**: Flutter journal app, shared journaling, collaborative diary, Supabase Flutter, rich text editor mobile, cross-platform journal, digital diary app, Flutter Riverpod example, real-time sync journal
