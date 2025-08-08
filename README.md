@@ -1,16 +1,45 @@
-# journalee_v2
+# Journalee
 
-A new Flutter project.
+A minimalist journal sharing app built with Flutter and Supabase for creating, sharing, and collaborating on personal journals.
 
-## Getting Started
+## What is Journalee?
 
-This project is a starting point for a Flutter application.
+Journalee is a cross-platform journaling application that lets you write private journals or share them with others through unique invitation codes. Built with a warm, material design aesthetic, it provides a distraction-free writing experience with rich text formatting support.
 
-A few resources to get you started if this is your first Flutter project:
+## Key Features
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- **Private & Shared Journals** - Create personal journals or collaborate with others
+- **Rich Text Editor** - Write with formatting options like bold and italic text  
+- **Unique Journal Codes** - Share journals easily with 6-character invitation codes
+- **Cross-Platform** - Works on iOS, Android, Web, macOS, Windows, and Linux
+- **Real-time Sync** - All entries sync instantly across devices via Supabase
+- **Clean Interface** - Minimal, warm design focused on the writing experience
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Why Use Journalee?
+
+Unlike complex note-taking apps, Journalee focuses solely on journaling. It's perfect for:
+
+- Personal daily journaling and reflection
+- Shared family memory books
+- Collaborative project logs
+- Travel journals with friends
+- Gratitude journals
+
+## Tech Stack
+
+- **Frontend**: Flutter with Riverpod state management
+- **Backend**: Supabase (Authentication, Database, Real-time sync)
+- **Editor**: Flutter Quill for rich text editing
+- **Routing**: GoRouter for navigation
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is open source and available under the MIT License.
+
+---
+
+**Keywords**: Flutter journal app, shared journaling, collaborative diary, Supabase Flutter, rich text editor mobile, cross-platform journal, digital diary app, Flutter Riverpod example, real-time sync journal
